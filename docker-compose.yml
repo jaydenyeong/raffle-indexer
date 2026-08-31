@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: indexer
+      POSTGRES_DB: indexer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U indexer -d indexer"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        # Plain depends_on waits only for the container to START, which is why so
+        # many apps crash on their first boot against Postgres.
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=db;Database=indexer;Username=indexer;Password=${POSTGRES_PASSWORD}"
+      Raffle__RpcUrl: ${SEPOLIA_RPC_URL}
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
