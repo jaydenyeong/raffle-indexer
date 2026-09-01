@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/RaffleIndexer/RaffleIndexer.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RaffleIndexer.IntegrationTests/RaffleIndexer.IntegrationTests.csproj" />
+  </Folder>
 </Solution>
