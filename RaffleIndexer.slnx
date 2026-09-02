@@ -4,5 +4,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/RaffleIndexer.IntegrationTests/RaffleIndexer.IntegrationTests.csproj" />
+    <Project Path="tests/RaffleIndexer.UnitTests/RaffleIndexer.UnitTests.csproj" />
   </Folder>
 </Solution>
