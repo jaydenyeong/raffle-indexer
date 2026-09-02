@@ -7,8 +7,9 @@ namespace RaffleIndexer.IntegrationTests;
 
 public class PostgresFixture : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage("postgres:17")
+    // Testcontainers 4.14+ deprecated the parameterless constructor; the image
+    // is passed to the constructor instead of via .WithImage().
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17")
         .Build();
     
     public string ConnectionString => _container.GetConnectionString();
