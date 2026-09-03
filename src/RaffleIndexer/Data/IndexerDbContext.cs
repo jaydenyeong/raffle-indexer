@@ -34,7 +34,19 @@ public class IndexerDbContext(DbContextOptions<IndexerDbContext> options) : DbCo
            e.HasIndex(x => x.PlayerAddress); 
         });
 
-        b.Entity<IndexerCursor>(e => e.HasKey(x => x.Id));
-        b.Entity<IndexerMetadata>(e => e.HasKey(x => x.Key));
+        // Without ToTable, EF names these after the DbSet properties (Cursor,
+        // Metadata) and they land as bare "cursor"/"metadata" — too vague for a
+        // shared schema, and not what the design doc specifies.
+        b.Entity<IndexerCursor>(e =>
+        {
+            e.ToTable("indexer_cursor");
+            e.HasKey(x => x.Id);
+        });
+
+        b.Entity<IndexerMetadata>(e =>
+        {
+            e.ToTable("indexer_metadata");
+            e.HasKey(x => x.Key);
+        });
     }
 }

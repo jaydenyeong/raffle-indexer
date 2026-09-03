@@ -14,6 +14,8 @@ builder.Services.AddDbContext<IndexerDbContext>(o =>
 
 builder.Services.AddSingleton<RaffleIndexer.Chain.IChainClient, RaffleIndexer.Chain.ChainClient>();
 
+builder.Services.AddScoped<IIndexerStore, IndexerStore>();
+
 var app = builder.Build();
 
 // single-service deployment

@@ -23,6 +23,8 @@ services:
     environment:
       ConnectionStrings__Default: "Host=db;Database=indexer;Username=indexer;Password=${POSTGRES_PASSWORD}"
       Raffle__RpcUrl: ${SEPOLIA_RPC_URL}
+      Raffle__ContractAddress: "0x1bf825d2a79f84c0c500f0797c5012d9724973d9"
+      Raffle__StartBlock: "11514209"
     ports:
       - "8080:8080"
 

@@ -3,6 +3,7 @@ using System;
 using System.Numerics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RaffleIndexer.Data;
@@ -12,9 +13,11 @@ using RaffleIndexer.Data;
 namespace RaffleIndexer.Data.Migrations
 {
     [DbContext(typeof(IndexerDbContext))]
-    partial class IndexerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260903075332_MakeSettledAtTimeNullable")]
+    partial class MakeSettledAtTimeNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -96,9 +99,9 @@ namespace RaffleIndexer.Data.Migrations
                         .HasColumnName("updated_at");
 
                     b.HasKey("Id")
-                        .HasName("pk_indexer_cursor");
+                        .HasName("pk_cursor");
 
-                    b.ToTable("indexer_cursor", (string)null);
+                    b.ToTable("cursor", (string)null);
                 });
 
             modelBuilder.Entity("RaffleIndexer.Data.IndexerMetadata", b =>
@@ -113,9 +116,9 @@ namespace RaffleIndexer.Data.Migrations
                         .HasColumnName("value");
 
                     b.HasKey("Key")
-                        .HasName("pk_indexer_metadata");
+                        .HasName("pk_metadata");
 
-                    b.ToTable("indexer_metadata", (string)null);
+                    b.ToTable("metadata", (string)null);
                 });
 
             modelBuilder.Entity("RaffleIndexer.Data.Round", b =>
