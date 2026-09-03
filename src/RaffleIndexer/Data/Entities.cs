@@ -21,7 +21,7 @@ public class Round
     public BigInteger? RequestId {get; set;}
 
     public long? SettledAtBlock {get; set;}
-    public DateTimeOffset SettledAtTime {get; set;}
+    public DateTimeOffset? SettledAtTime {get; set;}
 
     public string? WinnerAddress {get; set;}
     public BigInteger? PrizeWei {get; set;}

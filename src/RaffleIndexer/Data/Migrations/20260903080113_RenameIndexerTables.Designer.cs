@@ -3,6 +3,7 @@ using System;
 using System.Numerics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using RaffleIndexer.Data;
@@ -12,9 +13,11 @@ using RaffleIndexer.Data;
 namespace RaffleIndexer.Data.Migrations
 {
     [DbContext(typeof(IndexerDbContext))]
-    partial class IndexerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260903080113_RenameIndexerTables")]
+    partial class RenameIndexerTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
