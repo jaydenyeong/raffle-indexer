@@ -30,6 +30,22 @@ public class PostgresFixture : IAsyncLifetime
             .Options;
         return new IndexerDbContext(options);
     }
+
+    public async Task ResetAsync()
+    {
+        await using var db = CreateContext();
+        await db.Database.ExecuteSqlRawAsync(
+            "TRUNCATE entries, rounds, indexer_metadata, indexer_cursor RESTART IDENTITY CASCADE;"
+        );
+        db.Cursor.Add(new IndexerCursor
+        {
+            Id = IndexerDbContext.CursorRowId,
+            LastIndexedBlock = 11514208,
+            ChainHeadBlock = 0,
+            UpdatedAt = DateTimeOffset.UtcNow
+        });
+        await db.SaveChangesAsync();
+    }
 }
 
 [CollectionDefinition(nameof(PostgresCollection))]
