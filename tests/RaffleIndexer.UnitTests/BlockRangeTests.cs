@@ -1,6 +1,6 @@
 using RaffleIndexer.Indexing;
 
-namespace RaffleInxdexer.UnitTests;
+namespace RaffleIndexer.UnitTests;
 
 public class BlockRangeTests
 {
@@ -9,7 +9,7 @@ public class BlockRangeTests
     {
         var range = BlockRange.Next(lastIndexedBlock: 11514208, chainHead: 12000000,
             chunkSize: 2000, confirmationBlocks: 5);
-        
+
         Assert.NotNull(range);
         Assert.Equal(11514209, range.Value.From);
         Assert.Equal(11516208, range.Value.To);
@@ -31,7 +31,8 @@ public class BlockRangeTests
         var range = BlockRange.Next(lastIndexedBlock: 11999000, chainHead: 12000000,
             chunkSize: 2000, confirmationBlocks: 5);
 
-            Assert.Equal(11999995, range!.Value.To);
+        // Safe head is 12_000_000 - 5, and the chunk stops there rather than at the head.
+        Assert.Equal(11999995, range!.Value.To);
     }
 
     [Fact]
@@ -58,8 +59,8 @@ public class BlockRangeTests
     [Fact]
     public void Zero_confirmations_indexes_right_up_to_the_head()
     {
-        var range = (BlockRange.Next(lastIndexedBlock: 5, chainHead: 9,
-            chunkSize: 2000, confirmationBlocks: 0));
+        var range = BlockRange.Next(lastIndexedBlock: 5, chainHead: 9,
+            chunkSize: 2000, confirmationBlocks: 0);
 
         Assert.Equal(6, range!.Value.From);
         Assert.Equal(9, range.Value.To);
