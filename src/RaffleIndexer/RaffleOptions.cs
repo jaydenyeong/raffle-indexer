@@ -19,4 +19,6 @@ public class RaffleOptions
 
     // Sepolia block time
     public int PollIntervalSeconds {get; set;} = 12;
+
+    public bool EnableIndexer {get; set;} = true;
 }
