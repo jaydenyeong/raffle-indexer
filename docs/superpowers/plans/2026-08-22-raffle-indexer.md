@@ -3220,32 +3220,97 @@ Prove the whole loop against a chain the developer controls, then against the re
 
 - [ ] **Step 1: Start Anvil and deploy the contract locally**
 
+**Do not use `make deploy`.** It fails on Anvil with `InvalidSubscription()`, and
+the reason is structural rather than environmental. `SubscriptionAPI.createSubscription()`
+derives the subscription id from `blockhash(block.number - 1)`:
+
+```solidity
+subId = uint256(
+  keccak256(abi.encodePacked(msg.sender, blockhash(block.number - 1), address(this), currentSubNonce))
+);
+```
+
+A `forge script --broadcast` runs in two phases. During simulation every call
+executes in one block context, and the id computed there is baked into the
+recorded `addConsumer(subId, …)` calldata. During broadcast each transaction
+lands in its own block, so `createSubscription()` re-derives a *different* id —
+and `addConsumer` still carries the stale one. The script prints "Script ran
+successfully" and then fails in the on-chain phase. This is specific to the
+**v2.5** mock; the older `VRFCoordinatorV2Mock` used a deterministic
+`++s_currentSubId`, which is why this pattern works elsewhere.
+
+Driving the setup with `cast` avoids it entirely: every value is read back from
+live chain state, so nothing is fixed at simulation time.
+
 In a separate shell, from `d:\VSCode\foundry-full\foundry-smart-contract-lottery-cu`:
 
 ```bash
-make anvil
+anvil -m 'test test test test test test test test test test test junk'
 ```
+
+`make anvil` also works, but its `--block-time 1` is unnecessary here and makes
+the confirmation-lag arithmetic harder to follow while watching the indexer.
 
 In another shell, same directory:
 
 ```bash
-make deploy
+export RPC=http://localhost:8545
+export KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+export MOCK=lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol:VRFCoordinatorV2_5Mock
+
+# createSubscription reads blockhash(block.number - 1), which underflows at
+# block 0. Mine one block first on a fresh Anvil.
+cast rpc evm_mine --rpc-url $RPC
+
+export VRF=$(forge create "$MOCK" --rpc-url $RPC --private-key $KEY --broadcast \
+  --constructor-args 250000000000000000 1000000000 4000000000000000 \
+  | grep "Deployed to:" | awk '{print $3}')
+
+# Read the subscription id back from the SubscriptionCreated log, so it is
+# whatever the chain actually produced rather than a simulated value.
+export SUBID=$(cast send $VRF "createSubscription()" --rpc-url $RPC --private-key $KEY --json \
+  | python -c "import json,sys; r=json.load(sys.stdin); print([l['topics'][1] for l in r['logs'] if l['topics'][0].startswith('0x1d3015d7')][0])")
+
+# Note the uint256 amount: the mock declares fundSubscription(uint256,uint256),
+# and a uint96 second argument is a different selector that reverts with no data.
+cast send $VRF "fundSubscription(uint256,uint256)" $SUBID 100000000000000000000 --rpc-url $RPC --private-key $KEY
+
+export RAFFLE=$(forge create src/Raffle.sol:Raffle --rpc-url $RPC --private-key $KEY --broadcast \
+  --constructor-args $SUBID \
+    0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae \
+    30 10000000000000000 500000 $VRF \
+  | grep "Deployed to:" | awk '{print $3}')
+
+cast send $VRF "addConsumer(uint256,address)" $SUBID $RAFFLE --rpc-url $RPC --private-key $KEY
+
+echo "VRF=$VRF"; echo "SUBID=$SUBID"; echo "RAFFLE=$RAFFLE"
 ```
 
-Note two things from the output: the deployed `Raffle` address and the `VRFCoordinatorV2_5Mock` address. Both are printed by the deploy script; `broadcast/DeployRaffle.s.sol/31337/run-latest.json` has them if the console scrolls past.
+Verify the setup before going further:
 
-The lottery repo has no `EnterRaffle` script — `script/Interactions.s.sol` only covers subscription setup — so the steps below drive the contract with `cast` instead.
+```bash
+cast call $VRF "getSubscription(uint256)(uint96,uint96,uint64,address,address[])" $SUBID --rpc-url $RPC
+cast call $RAFFLE "getEntranceFee()(uint256)" --rpc-url $RPC
+```
+
+Expected: a balance of `100000000000000000000`, and a consumers array containing
+the `$RAFFLE` address. The entrance fee is `10000000000000000` (0.01 ETH). If the
+consumers array is empty, `addConsumer` failed and settlement in Step 4 will not work.
+
+The lottery repo has no `EnterRaffle` script — `script/Interactions.s.sol` only
+covers subscription setup — so the steps below drive the contract with `cast` too.
 
 - [ ] **Step 2: Fire entries at the local contract**
 
-Anvil's default first key is in the lottery repo's Makefile as `DEFAULT_ANVIL_KEY`:
+`$KEY` is Anvil's default first key, the same one the lottery repo's Makefile calls `DEFAULT_ANVIL_KEY`:
 
 ```bash
-export ANVIL_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-export RAFFLE=<raffle address from step 1>
+# $RPC, $KEY and $RAFFLE are still exported from Step 1.
+cast send $RAFFLE "enterRaffle()" --value 0.01ether --rpc-url $RPC --private-key $KEY
+cast send $RAFFLE "enterRaffle()" --value 0.01ether --rpc-url $RPC --private-key $KEY
 
-cast send $RAFFLE "enterRaffle()" --value 0.01ether --rpc-url http://localhost:8545 --private-key $ANVIL_KEY
-cast send $RAFFLE "enterRaffle()" --value 0.01ether --rpc-url http://localhost:8545 --private-key $ANVIL_KEY
+cast call $RAFFLE "getLengthOfPlayers()(uint256)" --rpc-url $RPC
+cast balance $RAFFLE --rpc-url $RPC
 ```
 
 Expected: both transactions show `status 1 (success)`.
@@ -3278,25 +3343,41 @@ Expected: one round, `"status":"Open"`, `"entryCount":2`, and `/rounds/1` lists 
 - [ ] **Step 4: Settle the round and confirm it becomes Settled with a prize**
 
 ```bash
-export VRF=<VRFCoordinatorV2_5Mock address from step 1>
-
 # The contract's upkeep interval is 30s, so move Anvil's clock past it.
-cast rpc evm_increaseTime 31 --rpc-url http://localhost:8545
-cast rpc evm_mine --rpc-url http://localhost:8545
+cast rpc evm_increaseTime 31 --rpc-url $RPC
+cast rpc evm_mine --rpc-url $RPC
 
-cast send $RAFFLE "performUpkeep(bytes)" 0x --rpc-url http://localhost:8545 --private-key $ANVIL_KEY
+# Must print true before performUpkeep will succeed.
+cast call $RAFFLE "checkUpkeep(bytes)(bool,bytes)" 0x --rpc-url $RPC
+
+# Pull the requestId straight out of the RequestedRaffleWinner log rather than
+# copying it by eye. That topic0 is the same hash the decoder tests use.
+export REQID=$(cast send $RAFFLE "performUpkeep(bytes)" 0x --rpc-url $RPC --private-key $KEY --json \
+  | python -c "import json,sys; r=json.load(sys.stdin); print([l['topics'][1] for l in r['logs'] if l['topics'][0]=='0xcd6e45c8998311cab7e9d4385596cac867e20a0587194b954fa3a731c93ce78b'][0])")
+echo "requestId: $REQID"
+
+# 1 == CALCULATING: the round is now waiting on VRF.
+cast call $RAFFLE "getRaffleState()(uint8)" --rpc-url $RPC
 ```
 
-Read the `requestId` from the `RequestedRaffleWinner` log in that receipt, then fulfil it through the mock coordinator:
+Fulfil the request through the mock coordinator, standing in for what Chainlink
+would do on a real network:
 
 ```bash
-cast send $VRF "fulfillRandomWords(uint256,address)" <requestId> $RAFFLE \
-  --rpc-url http://localhost:8545 --private-key $ANVIL_KEY
+cast send $VRF "fulfillRandomWords(uint256,address)" $REQID $RAFFLE --rpc-url $RPC --private-key $KEY
+
+# 0 == OPEN again, a winner is recorded, and the contract balance is back to 0
+# because fulfillRandomWords forwards the entire balance to the winner. That
+# zero is why the prize must be read at settledBlock - 1.
+cast call $RAFFLE "getRaffleState()(uint8)" --rpc-url $RPC
+cast call $RAFFLE "getRecentWinner()(address)" --rpc-url $RPC
+cast balance $RAFFLE --rpc-url $RPC
 
 sleep 10
 curl -s http://localhost:8080/rounds/1
 curl -s http://localhost:8080/stats
 ```
+
 
 Expected: round 1 is `"status":"Settled"` with a `winner`, a `prizeWei` of `20000000000000000` (two entries of 0.01 ETH), and a `requestId` matching the one above. `/stats` reports `roundsSettled: 1`.
 
@@ -3305,7 +3386,7 @@ This exercises every piece: decoding, round synthesis across all three states, b
 - [ ] **Step 5: Confirm a mid-round restart loses nothing**
 
 ```bash
-cast send $RAFFLE "enterRaffle()" --value 0.01ether --rpc-url http://localhost:8545 --private-key $ANVIL_KEY
+cast send $RAFFLE "enterRaffle()" --value 0.01ether --rpc-url $RPC --private-key $KEY
 docker compose -f docker-compose.yml -f docker-compose.anvil.yml restart api
 sleep 10
 curl -s http://localhost:8080/rounds/current
