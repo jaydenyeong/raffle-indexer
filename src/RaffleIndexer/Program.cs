@@ -16,6 +16,11 @@ builder.Services.AddSingleton<RaffleIndexer.Chain.IChainClient, RaffleIndexer.Ch
 
 builder.Services.AddScoped<IIndexerStore, IndexerStore>();
 
+if (builder.Configuration.GetValue($"{RaffleOptions.SectionName}:EnableIndexer", true))
+{
+    builder.Services.AddHostedService<RaffleIndexer.Indexing.IndexerWorker>();
+}
+
 var app = builder.Build();
 
 // single-service deployment
