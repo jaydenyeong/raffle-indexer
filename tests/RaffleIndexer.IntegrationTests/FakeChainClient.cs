@@ -1,19 +1,22 @@
-using RaffleIndexer.Chain;
 using System.Numerics;
+using RaffleIndexer.Chain;
 
-namespace RaffleIndexer.IntergrationTests;
+namespace RaffleIndexer.IntegrationTests;
 
+/// <summary>Scripted chain, so the worker loop can be exercised with no RPC.</summary>
 public class FakeChainClient : IChainClient
 {
-    public long Head {get; set;}
-    public List<RaffleEvent> Events {get;} = [];
+    public long Head { get; set; }
+    public List<RaffleEvent> Events { get; } = [];
 
-    public Dictionary<long, BigInteger> BalancesByBlock {get;} = [];
+    /// <summary>Contract balance keyed by block number; missing blocks read as zero.</summary>
+    public Dictionary<long, BigInteger> BalancesByBlock { get; } = [];
 
-    public BigInteger EntranceFee {get; set;} = BigInteger.Parse("10000000000000000");
+    public BigInteger EntranceFee { get; set; } = BigInteger.Parse("10000000000000000");
 
-    public List<(long From, long To)> GetEventsCalls {get;} = [];
-    public List<long> TimestampCalls {get;} = [];
+    public List<(long From, long To)> GetEventsCalls { get; } = [];
+    public List<long> TimestampCalls { get; } = [];
+
     public Task<long> GetLatestBlockNumberAsync(CancellationToken ct) => Task.FromResult(Head);
 
     public Task<IReadOnlyList<RaffleEvent>> GetEventsAsync(long fromBlock, long toBlock, CancellationToken ct)
@@ -33,7 +36,7 @@ public class FakeChainClient : IChainClient
     }
 
     public Task<BigInteger> GetBalanceAtBlockAsync(long blockNumber, CancellationToken ct) =>
-        Task.FromResult(BalancesByBlock.TryGetValue(blockNumber, out var b)? b: BigInteger.Zero);
+        Task.FromResult(BalancesByBlock.TryGetValue(blockNumber, out var b) ? b : BigInteger.Zero);
 
     public Task<BigInteger> GetEntranceFeeAsync(CancellationToken ct) => Task.FromResult(EntranceFee);
 }

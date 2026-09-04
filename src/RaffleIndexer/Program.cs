@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using RaffleIndexer.Data;
 using Microsoft.Extensions.Options;
 using RaffleIndexer;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,8 @@ if (builder.Configuration.GetValue($"{RaffleOptions.SectionName}:EnableIndexer",
 {
     builder.Services.AddHostedService<RaffleIndexer.Indexing.IndexerWorker>();
 }
+
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -45,21 +48,13 @@ await using (var scope = app.Services.CreateAsyncScope())
     }
 }
 
-app.MapGet("/health", async (IndexerDbContext db) =>
-{
-    var cursor = await db.Cursor.AsNoTracking().SingleAsync(c => c.Id == IndexerDbContext.CursorRowId);
+app.MapOpenApi();
+app.MapScalarApiReference();
 
-    var behind = Math.Max(0, cursor.ChainHeadBlock - cursor.LastIndexedBlock);
+RaffleIndexer.Api.RoundEndpoints.Map(app);
+RaffleIndexer.Api.MiscEndpoints.Map(app);
 
-    return Results.Ok(new
-    {
-        lastIndexedBlock = cursor.LastIndexedBlock,
-        chainHeadBlock = cursor.ChainHeadBlock,
-        blocksBehind = behind,
-        caughtUp = cursor.ChainHeadBlock > 0 && behind <= 5,
-        updatedAt = cursor.UpdatedAt
-    });
-});
+app.MapGet("/", () => Results.Redirect("/scalar/v1"));
 
 app.Run();
 
