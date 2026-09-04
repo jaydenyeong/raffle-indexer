@@ -44,6 +44,17 @@ public static class RoundEndpoints
             return round is null ? Results.NotFound() : Results.Ok(ToDetail(round));
         })
         .WithSummary("The round currently Open or Calculating, if any.");
+
+        // Registered after /rounds/current so "current" is never a candidate id.
+        app.MapGet("/rounds/{id:int}", async (IndexerDbContext db, int id) =>
+        {
+            var round = await db.Rounds.AsNoTracking()
+                .Include(r => r.Entries)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            return round is null ? Results.NotFound() : Results.Ok(ToDetail(round));
+        })
+        .WithSummary("One round with its entries.");
     }
 
     internal static RoundSummary ToSummary(Round r) => new(
