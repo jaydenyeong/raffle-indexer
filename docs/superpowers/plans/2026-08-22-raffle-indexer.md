@@ -3245,11 +3245,24 @@ live chain state, so nothing is fixed at simulation time.
 In a separate shell, from `d:\VSCode\foundry-full\foundry-smart-contract-lottery-cu`:
 
 ```bash
-anvil -m 'test test test test test test test test test test test junk'
+anvil -m 'test test test test test test test test test test test junk' --host 0.0.0.0
 ```
 
-`make anvil` also works, but its `--block-time 1` is unnecessary here and makes
-the confirmation-lag arithmetic harder to follow while watching the indexer.
+**`--host 0.0.0.0` is required**, and `make anvil` does not pass it. Anvil binds
+to `127.0.0.1` by default, which the API container cannot reach: `host.docker.internal`
+resolves to the host's virtual adapter address, not loopback, so a loopback-only
+Anvil refuses the connection. The symptom is the worker looping on
+
+```
+Nethereum.JsonRpc.Client.RpcClientUnknownException: eth_blockNumber
+ ---> System.Net.Http.HttpRequestException: Connection refused (host.docker.internal:8545)
+```
+
+while `cast` keeps working from the host, because `cast` connects over loopback.
+
+Dropping `make anvil`'s `--block-time 1` is also worth it here: blocks then only
+appear when a transaction arrives, which keeps the block numbers small enough to
+follow while watching the indexer.
 
 In another shell, same directory:
 

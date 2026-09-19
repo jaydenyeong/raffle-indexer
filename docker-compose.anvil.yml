@@ -1,0 +1,18 @@
+# Points the indexer at a local Anvil instead of Sepolia.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.anvil.yml up --build -d
+#
+# Deploy the contract first with the cast sequence in task 9 of the plan, then
+# override RAFFLE and RAFFLE_START_BLOCK if they differ from the defaults below.
+# The addresses Anvil produces are deterministic for a fresh chain, but the
+# deploy block is not.
+services:
+  api:
+    environment:
+      # host.docker.internal reaches the host's Anvil from inside the container.
+      Raffle__RpcUrl: "http://host.docker.internal:8545"
+      Raffle__ContractAddress: "${RAFFLE:-0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9}"
+      Raffle__StartBlock: "${RAFFLE_START_BLOCK:-4}"
+      # Anvil has no reorgs, so there is nothing to stay behind.
+      Raffle__ConfirmationBlocks: "0"
+      Raffle__PollIntervalSeconds: "2"

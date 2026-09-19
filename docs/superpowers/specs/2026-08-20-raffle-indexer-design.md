@@ -1,7 +1,7 @@
 # Raffle Indexer — Design
 
 **Date:** 2026-08-20
-**Status:** Approved, ready for implementation planning
+**Status:** Implemented — see [the implementation plan](../plans/2026-08-22-raffle-indexer.md)
 **Author:** Jayden Y. (with Claude)
 
 ## Context
