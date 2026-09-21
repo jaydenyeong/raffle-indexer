@@ -23,6 +23,14 @@ public static class RaffleLogDecoder
                 Address: Normalize(decoded.Event.Player));
         }
 
+        // Same meaning, older name: this is what the deployed Sepolia contract emits.
+        if (log.IsLogForEvent<EnteredRaffleEventDto>())
+        {
+            var decoded = log.DecodeEvent<EnteredRaffleEventDto>();
+            return new RaffleEvent(RaffleEventKind.Enter, block, logIndex, txHash,
+                Address: Normalize(decoded.Event.Player));
+        }
+
         if (log.IsLogForEvent<RequestedRaffleWinnerEventDto>())
         {
             var decoded = log.DecodeEvent<RequestedRaffleWinnerEventDto>();

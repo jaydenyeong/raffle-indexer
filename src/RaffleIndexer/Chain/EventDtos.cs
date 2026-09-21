@@ -11,6 +11,19 @@ public class RaffleEnterEventDto : IEventDTO
     public string Player {get; set;} = "";
 }
 
+/// <summary>
+/// The entry event as the deployed Sepolia contract declares it. That
+/// deployment predates a rename in src/Raffle.sol, which now emits
+/// <see cref="RaffleEnterEventDto"/>. Both are indexed as an entry so the same
+/// build works against the live contract and against a freshly deployed one.
+/// </summary>
+[Event("EnteredRaffle")]
+public class EnteredRaffleEventDto : IEventDTO
+{
+    [Parameter("address", "player", 1, true)]
+    public string Player { get; set; } = "";
+}
+
 [Event("RequestedRaffleWinner")]
 public class RequestedRaffleWinnerEventDto : IEventDTO
 {

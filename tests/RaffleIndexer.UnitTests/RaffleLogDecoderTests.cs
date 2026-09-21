@@ -11,6 +11,8 @@ public class RaffleLogDecoderTests
         "0x0805e1d667bddb8a95f0f09880cf94f403fb596ce79928d9f29b74203ba284d4";
     private const string RequestedTopic = 
         "0xcd6e45c8998311cab7e9d4385596cac867e20a0587194b954fa3a731c93ce78b";
+    private const string EnteredRaffleTopic =
+        "0x819fbd717c9d0b421352c5116a644ca68ba176960c33f406f08d98a27370ca27";
     private const string WinnerTopic =
         "0x5b690ec4a06fe979403046eaeea5b3ce38524683c3001f662c8b5a829632f7df";
     
@@ -77,6 +79,26 @@ public class RaffleLogDecoderTests
         Assert.NotNull(evt);
         Assert.Equal(RaffleEventKind.WinnerPicked, evt.Kind);
         Assert.Equal("0xa4e6adae4e9b607b865aada5b9811444926ff531", evt.Address);
+    }
+
+    // The Sepolia deployment at 0x1bf825d2... predates a rename in the source: its
+    // ABI declares EnteredRaffle(address) where src/Raffle.sol now says
+    // RaffleEnter(address). Both must decode, or one of the two chains goes blind.
+    [Fact]
+    public void Decodes_the_deployed_EnteredRaffle_event()
+    {
+        // Real log from Sepolia block 11748509, log index 162.
+        var log = Log(EnteredRaffleTopic,
+            "0x000000000000000000000000a4e6adae4e9b607b865aada5b9811444926ff531",
+            block: 11748509, logIndex: 162);
+
+        var evt = RaffleLogDecoder.Decode(log);
+
+        Assert.NotNull(evt);
+        Assert.Equal(RaffleEventKind.Enter, evt.Kind);
+        Assert.Equal("0xa4e6adae4e9b607b865aada5b9811444926ff531", evt.Address);
+        Assert.Equal(11748509, evt.BlockNumber);
+        Assert.Equal(162, evt.LogIndex);
     }
 
     [Fact]
