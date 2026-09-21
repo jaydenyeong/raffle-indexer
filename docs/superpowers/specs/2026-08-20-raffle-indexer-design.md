@@ -28,10 +28,19 @@ not incidental packaging; it is part of the deliverable's purpose.
 ### Contract events (the complete set)
 
 ```solidity
-event RaffleEnter(address indexed player);
+event EnteredRaffle(address indexed player);      // as DEPLOYED at 0x1bf825d2
 event RequestedRaffleWinner(uint256 indexed requestId);
 event WinnerPicked(address indexed winner);
 ```
+
+**Correction (verified 2026-09-21 against the deployed ABI on Etherscan).** This
+list originally read `RaffleEnter(address)`, taken from local `src/Raffle.sol`.
+The deployed bytecode predates a rename and emits `EnteredRaffle(address)`
+(`0x819fbd71...`), not `RaffleEnter(address)` (`0x0805e1d6...`). Reading the event
+set from source rather than from the deployed ABI made every Sepolia entry
+invisible to the indexer. The other two events match. The decoder now accepts
+both entry signatures so the same build serves the live contract and a freshly
+deployed one.
 
 Note what is *absent*: no round identifier, no ETH amount, no timestamp. Round structure and
 prize values must be derived. This is the central design problem.
