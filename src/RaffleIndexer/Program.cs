@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using RaffleIndexer.Data;
 using Microsoft.Extensions.Options;
@@ -26,7 +27,25 @@ if (builder.Configuration.GetValue($"{RaffleOptions.SectionName}:EnableIndexer",
 
 builder.Services.AddOpenApi();
 
+// Render, and every other managed host, terminates TLS at a proxy and forwards
+// to the container over plain HTTP. Without this the app believes the request
+// arrived on http, advertises "http://..." in the OpenAPI servers array, and the
+// browser blocks the interactive page's own calls as mixed content.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    // The proxy's address is not known ahead of time, and on these platforms the
+    // container is only reachable through it, so the defaults are cleared rather
+    // than pinned to a network.
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
+
+// Must run before anything that reads the request scheme.
+app.UseForwardedHeaders();
 
 // single-service deployment
 
