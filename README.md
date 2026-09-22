@@ -1,8 +1,14 @@
 # Raffle Indexer
 
+**Live:** <https://raffle-indexer-n5yn.onrender.com>
+
 Indexes the [`Raffle`](https://sepolia.etherscan.io/address/0x45ea858Ad50F38d6Cb1056C52C72070F93cD5F3D)
 contract's events from Sepolia into Postgres and serves them as fast, queryable
 read models.
+
+The live instance runs on Render's free tier, so the first request after a period
+of inactivity waits a few seconds for a cold start while the indexer catches up
+from its cursor.
 
 The contract emits three events and nothing else:
 
