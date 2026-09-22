@@ -26,6 +26,12 @@ contract invisible until the mismatch was found.
 No round identifier. No prize amount. No timestamps. All three are synthesized
 or derived here — that is most of what this project is.
 
+![The interactive API page serving a round from Postgres](docs/images/scalar-rounds.png)
+
+*A real Sepolia round served from Postgres in 321 ms. The round sits in
+`Calculating` because its VRF request is still pending on-chain — a genuine
+state, surfaced rather than hidden.*
+
 ## Run it
 
 ```bash
