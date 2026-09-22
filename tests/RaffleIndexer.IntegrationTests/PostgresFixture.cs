@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Server.Kestrel.Transport.NamedPipes;
 using Microsoft.EntityFrameworkCore;
 using RaffleIndexer.Data;
 using Testcontainers.PostgreSql;

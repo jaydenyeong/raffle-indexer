@@ -32,7 +32,7 @@ public static class RoundEndpoints
             
             return Results.Ok(new PagedResult<RoundSummary>(page, pageSize, total, rounds.Select(ToSummary).ToList()));
         })
-        .WithSummary("Paged round summarizes, newest first. Optional status filter.");
+        .WithSummary("Paged round summaries, newest first. Optional status filter.");
 
         app.MapGet("/rounds/current", async (IndexerDbContext db) =>
         {
