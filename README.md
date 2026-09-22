@@ -119,11 +119,40 @@ container reaches the host through `host.docker.internal`, which resolves to the
 host's virtual adapter rather than loopback — a loopback-only Anvil refuses the
 connection while `cast` keeps working from the host.
 
-Deploy with the `cast` sequence documented in
-[the plan](docs/superpowers/plans/2026-08-22-raffle-indexer.md) (task 9), then:
+Deploy the contract with `cast`, from the lottery repo:
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.anvil.yml up --build -d
+export RPC=http://localhost:8545
+export KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+MOCK=lib/chainlink-brownie-contracts/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol:VRFCoordinatorV2_5Mock
+
+# createSubscription reads blockhash(block.number - 1), which underflows at
+# block 0, so a fresh Anvil needs one block mined first.
+cast rpc evm_mine --rpc-url $RPC
+
+VRF=$(forge create "$MOCK" --rpc-url $RPC --private-key $KEY --broadcast   --constructor-args 250000000000000000 1000000000 4000000000000000   | grep "Deployed to:" | awk '{print $3}')
+
+# The subscription id is only knowable after the transaction runs, so read it
+# back from the SubscriptionCreated log rather than predicting it.
+SUBID=$(cast send $VRF "createSubscription()" --rpc-url $RPC --private-key $KEY --json   | python -c "import json,sys; r=json.load(sys.stdin);       print([l['topics'][1] for l in r['logs']       if l['topics'][0].startswith('0x1d3015d7')][0])")
+
+cast send $VRF "fundSubscription(uint256,uint256)" $SUBID 100000000000000000000   --rpc-url $RPC --private-key $KEY
+
+DEPLOY_BLOCK=$(cast block-number --rpc-url $RPC)
+RAFFLE=$(forge create src/Raffle.sol:Raffle --rpc-url $RPC --private-key $KEY --broadcast   --constructor-args $SUBID     0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae     30 10000000000000000 500000 $VRF   | grep "Deployed to:" | awk '{print $3}')
+
+cast send $VRF "addConsumer(uint256,address)" $SUBID $RAFFLE   --rpc-url $RPC --private-key $KEY
+```
+
+`fundSubscription` takes `(uint256,uint256)`; passing a `uint96` second argument
+selects a different overload that reverts with no data. Verify `addConsumer`
+actually landed — `getSubscription` should list the raffle — because a dropped
+RPC call here surfaces later as `InvalidConsumer` from `performUpkeep`.
+
+Then point the indexer at it, using `DEPLOY_BLOCK` as the genesis:
+
+```bash
+RAFFLE=$RAFFLE RAFFLE_START_BLOCK=$DEPLOY_BLOCK   docker compose -f docker-compose.yml -f docker-compose.anvil.yml up --build -d
 ```
 
 `make deploy` from the lottery repo does **not** work here.
