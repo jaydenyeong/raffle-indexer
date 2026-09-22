@@ -32,6 +32,14 @@ services:
       - key: Raffle__StartBlock
         value: "11756391"
 
+      # Alchemy's free tier caps eth_getLogs at a 10-block range; an 11-block
+      # request is rejected with -32600. BlockRange asks for chunkSize blocks
+      # inclusive, so 10 sits exactly on the limit. Backfill from genesis is only
+      # ~540 blocks, so ~54 requests, and tailing needs one block per poll.
+      # Raise this on a paid plan or a provider without the cap.
+      - key: Raffle__ChunkSize
+        value: "10"
+
       # Prompted for at blueprint creation, then stored as a secret.
       - key: Raffle__RpcUrl
         sync: false

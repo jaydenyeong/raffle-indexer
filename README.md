@@ -149,7 +149,7 @@ Two consequences of the free tier worth knowing:
 | `POSTGRES_PASSWORD` | database password (`.env`, never committed) |
 | `Raffle__ContractAddress` | contract to index |
 | `Raffle__StartBlock` | backfill genesis |
-| `Raffle__ChunkSize` | blocks per backfill request — lower it if the RPC throttles |
+| `Raffle__ChunkSize` | blocks per backfill request. Providers cap `eth_getLogs` ranges — Alchemy's free tier allows 10 blocks and rejects 11 with `-32600`, so the Render deployment sets 10 |
 | `Raffle__ConfirmationBlocks` | how far behind the head to stay |
 | `Raffle__PollIntervalSeconds` | tail poll interval |
 | `Raffle__EnableIndexer` | set `false` to run the API without the worker |
