@@ -10,7 +10,9 @@ builder.Services.Configure<RaffleOptions>(
     builder.Configuration.GetSection(RaffleOptions.SectionName));
 
 builder.Services.AddDbContext<IndexerDbContext>(o =>
-    o.UseNpgsql(builder.Configuration.GetConnectionString("Default"))
+    // Normalize handles the postgres:// URL that managed hosts supply; a local
+    // key-value connection string passes through unchanged.
+    o.UseNpgsql(DatabaseUrl.Normalize(builder.Configuration.GetConnectionString("Default")))
     .UseSnakeCaseNamingConvention());
 
 builder.Services.AddSingleton<RaffleIndexer.Chain.IChainClient, RaffleIndexer.Chain.ChainClient>();

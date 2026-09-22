@@ -121,6 +121,26 @@ simulation — and baked into the recorded `addConsumer` calldata — differs fr
 the one actually created during broadcast. The script reports success, then
 reverts with `InvalidSubscription`.
 
+## Deploying to Render
+
+[`render.yaml`](render.yaml) provisions the web service and a Postgres instance
+as a blueprint. In Render: **New > Blueprint**, point it at this repo, and supply
+`Raffle__RpcUrl` when prompted — it holds an API key and is marked `sync: false`
+so it is never committed.
+
+Managed hosts expose Postgres as a `postgresql://user:pass@host/db` URL, which
+Npgsql cannot parse. `DatabaseUrl.Normalize` translates it at startup and leaves
+a local key-value connection string untouched.
+
+Two consequences of the free tier worth knowing:
+
+- **The service sleeps after inactivity.** The indexer stops with it and resumes
+  from its cursor on the next request, so nothing is lost — the first visitor
+  just waits a few seconds for a cold start plus catch-up.
+- **Storage is not guaranteed to persist.** That would matter if backfill were
+  expensive, but genesis is block 11,756,391, so rebuilding the database from an
+  empty volume takes seconds.
+
 ## Configuration
 
 | Variable | Meaning |

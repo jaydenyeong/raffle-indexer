@@ -1,0 +1,44 @@
+# Render blueprint. Create the stack with: New > Blueprint, pointed at this repo.
+#
+# SEPOLIA_RPC_URL is deliberately NOT set here — it carries an API key and must
+# never be committed. It is marked sync: false, so Render prompts for it once at
+# creation time and stores it as a secret.
+services:
+  - type: web
+    name: raffle-indexer
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      # Render routes to the port it advertises in PORT; the aspnet base image
+      # listens on 8080 unless told otherwise, so the two are pinned together.
+      - key: PORT
+        value: 8080
+      - key: ASPNETCORE_HTTP_PORTS
+        value: 8080
+
+      # Supplied as a postgres:// URL, which DatabaseUrl.Normalize translates
+      # into the key-value form Npgsql requires.
+      - key: ConnectionStrings__Default
+        fromDatabase:
+          name: raffle-indexer-db
+          property: connectionString
+
+      - key: Raffle__ContractAddress
+        value: "0x45ea858Ad50F38d6Cb1056C52C72070F93cD5F3D"
+      - key: Raffle__StartBlock
+        value: "11756391"
+
+      # Prompted for at blueprint creation, then stored as a secret.
+      - key: Raffle__RpcUrl
+        sync: false
+
+databases:
+  - name: raffle-indexer-db
+    databaseName: indexer
+    user: indexer
+    plan: free
+    region: oregon
