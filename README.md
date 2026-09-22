@@ -1,16 +1,21 @@
 # Raffle Indexer
 
-Indexes the [`Raffle`](https://sepolia.etherscan.io/address/0x1bf825d2a79f84c0c500f0797c5012d9724973d9)
+Indexes the [`Raffle`](https://sepolia.etherscan.io/address/0x45ea858Ad50F38d6Cb1056C52C72070F93cD5F3D)
 contract's events from Sepolia into Postgres and serves them as fast, queryable
 read models.
 
 The contract emits three events and nothing else:
 
 ```solidity
-event RaffleEnter(address indexed player);
+event RaffleEnter(address indexed player);        // older deployments: EnteredRaffle
 event RequestedRaffleWinner(uint256 indexed requestId);
 event WinnerPicked(address indexed winner);
 ```
+
+The indexer decodes both `RaffleEnter` and `EnteredRaffle` as an entry. An
+earlier deployment of this contract emitted the latter, and reading the event
+set from source rather than from the deployed ABI made every entry on that
+contract invisible until the mismatch was found.
 
 No round identifier. No prize amount. No timestamps. All three are synthesized
 or derived here — that is most of what this project is.
@@ -24,7 +29,7 @@ docker compose up --build
 
 Open <http://localhost:8080/> for the interactive API page.
 
-Backfill starts at block 11,514,209 (the deploy block) and takes a few minutes.
+Backfill starts at block 11,756,391 (the deploy block) and takes seconds.
 Watch progress at <http://localhost:8080/health>.
 
 ## Endpoints

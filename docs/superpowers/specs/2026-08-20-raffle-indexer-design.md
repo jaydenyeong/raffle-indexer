@@ -20,10 +20,21 @@ not incidental packaging; it is part of the deliverable's purpose.
 
 | | |
 |---|---|
-| Contract | `0x1bf825d2a79f84c0c500f0797c5012d9724973d9` |
+| Contract | `0x45ea858Ad50F38d6Cb1056C52C72070F93cD5F3D` (redeployed — see note) |
 | Chain | Sepolia (`11155111`) |
-| Deploy block | `11514209` (`0xafb161`) — backfill genesis |
+| Deploy block | `11756391` — backfill genesis |
 | .NET SDK | 10.0.300 |
+
+**Redeployment note (2026-09-22).** The original deployment at
+`0x1bf825d2a79f84c0c500f0797c5012d9724973d9` is permanently stuck in
+`CALCULATING`. Its VRF request at block 11748513 was the only one of 100 on the
+Sepolia coordinator left unfulfilled; measured against 95 fulfilled requests
+(median 5 blocks, p90 32, max 223) it sat unserved for over 7,900 blocks, and a
+top-up from 3 to 13 LINK did not move it. Subscription, consumer registration,
+keyHash and request parameters all check out on-chain, so the cause is inside
+Chainlink's DON. The contract was redeployed against a fresh subscription. The
+original remains a genuine example of the stuck-VRF state the indexer is
+designed to surface.
 
 ### Contract events (the complete set)
 
